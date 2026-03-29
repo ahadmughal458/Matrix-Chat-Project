@@ -107,8 +107,8 @@ st.set_page_config(page_title="Matrix Chat", page_icon="🕶️")
 
 # --- SCREEN A: LOGIN SYSTEM ---
 if not st.session_state.logged_in:
-    st.title("🔒 Secure Matrix Login")
-    st.write("Please log in to access the encrypted server.")
+    st.title("🔒 Login Page")
+    st.write("Please log in to access.")
     
     user_input = st.text_input("Username")
     pass_input = st.text_input("Password", type="password")
