@@ -103,7 +103,7 @@ valid_users = {
 # ==========================================
 # 4. THE WEB INTERFACE
 # ==========================================
-st.set_page_config(page_title="Matrix Chat", page_icon="🕶️")
+st.set_page_config(page_title="Matrix Chat")
 
 # --- SCREEN A: LOGIN SYSTEM ---
 if not st.session_state.logged_in:
