@@ -2,173 +2,173 @@ import streamlit as st
 import json
 import os
 import numpy as np
-import time
-from datetime import datetime
-from streamlit_autorefresh import st_autorefresh
 from crypto_engine import HillCipher
+from streamlit_autorefresh import st_autorefresh
+from github import Github  # <-- NEW: Used for GitHub integration
+from github.GithubException import GithubException
 
-# --- 1. CORE ENGINE SETUP ---
-# Using your 3x3 Secret Key for Linear Algebra
-secret_key = [[1, 2, 3], [0, 1, 4], [5, 6, 0]]
+# ==========================================
+# 1. SETUP THE MATH ENGINE & CONFIG
+# ==========================================
+secret_key = [
+    [1, 2, 3],
+    [0, 1, 4],
+    [5, 6, 0]
+]
 engine = HillCipher(secret_key)
 DB_FILE = "chat_history.json"
 
+# --- GITHUB CONFIGURATION ---
+# Replace these with your actual details!
+GITHUB_TOKEN = "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN" 
+REPO_NAME = "your-username/your-repo-name"  
+GITHUB_FILE_PATH = "chat_history.json" 
+
+# ==========================================
+# 2. DATABASE & GITHUB FUNCTIONS
+# ==========================================
 def load_messages():
-    if not os.path.exists(DB_FILE): return []
+    """Reads the encrypted matrices from our JSON file"""
+    if not os.path.exists(DB_FILE):
+        return []
+    with open(DB_FILE, "r") as f:
+        return json.load(f)
+
+def push_to_github():
+    """Pushes the local chat_history.json to your GitHub repository"""
+    if GITHUB_TOKEN == "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN":
+        return # Skip if token isn't set up yet
+        
     try:
-        with open(DB_FILE, "r") as f: return json.load(f)
-    except: return []
+        g = Github(GITHUB_TOKEN)
+        repo = g.get_repo(REPO_NAME)
+        
+        # Read the local file
+        with open(DB_FILE, 'r') as file:
+            content = file.read()
+
+        try:
+            # Try to update the file if it already exists
+            contents = repo.get_contents(GITHUB_FILE_PATH)
+            repo.update_file(
+                contents.path, 
+                "Automated chat history update", 
+                content, 
+                contents.sha
+            )
+        except GithubException:
+            # If the file doesn't exist, create it
+            repo.create_file(
+                GITHUB_FILE_PATH, 
+                "Initial chat history commit", 
+                content
+            )
+    except Exception as e:
+        st.error(f"GitHub Sync Error: {e}")
 
 def save_message(username, encrypted_matrix):
+    """Saves a new encrypted matrix locally, then pushes to GitHub"""
     messages = load_messages()
     messages.append({
         "user": username,
-        "matrix": encrypted_matrix.tolist(),
-        "time": datetime.now().strftime("%I:%M %p")
+        "matrix": encrypted_matrix.tolist()
     })
-    with open(DB_FILE, "w") as f: json.dump(messages, f)
+    
+    # 1. Save Locally
+    with open(DB_FILE, "w") as f:
+        json.dump(messages, f)
+        
+    # 2. Push to GitHub
+    push_to_github()
 
-# --- 2. PAGE CONFIG & HUMANIZED STYLING ---
-st.set_page_config(page_title="Matrix Crypt", page_icon="🔐", layout="centered")
-
-# Custom CSS for a professional, non-AI look
-st.markdown("""
-    <style>
-    .stApp { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #E0E0E0; }
-    .chat-bubble {
-        padding: 15px;
-        border-radius: 20px;
-        margin-bottom: 15px;
-        max-width: 85%;
-        font-family: 'Inter', sans-serif;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    .user-bubble { 
-        background: linear-gradient(to right, #00c6ff, #0072ff); 
-        color: white; 
-        margin-left: auto; 
-        border-bottom-right-radius: 2px; 
-    }
-    .other-bubble { 
-        background: rgba(255, 255, 255, 0.1); 
-        backdrop-filter: blur(10px);
-        color: #f1f1f1; 
-        margin-right: auto; 
-        border-bottom-left-radius: 2px; 
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-    .metadata { font-size: 0.7rem; opacity: 0.6; margin-top: 8px; font-weight: bold; }
-    .stTextInput > div > div > input { border-radius: 20px; padding: 10px 20px; }
-    .stButton > button { border-radius: 20px; transition: 0.3s; }
-    .stButton > button:hover { transform: scale(1.02); }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 3. SESSION & OFFICIAL TEAM LOGIN ---
+# ==========================================
+# 3. SESSION STATE (Remembering the User)
+# ==========================================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
 
+# Allowed Users
+valid_users = {
+    "ahad": "ahad123",
+    "admin": "admin123",
+    "sehrish": "sehrish123",
+    "tatheer": "tatheer123",
+    "essa": "essa123",
+    "ahmed123": "ahmed123",
+    "maheen": "maheen123"
+}
+
+# ==========================================
+# 4. THE WEB INTERFACE
+# ==========================================
+st.set_page_config(page_title="Matrix Chat", page_icon="🕶️")
+
+# --- SCREEN A: LOGIN SYSTEM ---
 if not st.session_state.logged_in:
-    st.title("🔐 Project Matrix: Secure Node")
-    st.info("Authorized Personnel Only - Please authenticate.")
+    st.title("🔒 Secure Matrix Login")
+    st.write("Please log in to access the encrypted server.")
     
-    with st.container():
-        u = st.text_input("Username")
-        p = st.text_input("Password", type="password")
-        
-        if st.button("Decrypt & Enter", use_container_width=True):
-            # 👥 OFFICIAL TEAM DATABASE
-            users = {
-                "tatheer fatima": "tatheer123",
-                "maheen sabir": "maheen456",
-                "sehris": "sehris789",
-                "abdul aahad": "aahad000",
-                "m ahmed": "ahmed111",
-                "essa raza": "essa222",
-                "admin": "professor99"
-            }
-            
-            input_user = u.lower().strip()
-            if input_user in users and users[input_user] == p:
-                st.session_state.logged_in = True
-                st.session_state.username = u.title()
-                st.toast(f"Access Granted. Welcome, {u.title()}!", icon="✔️")
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.error("🚨 Authentication Failed: Key Mismatch")
-    st.stop()
+    user_input = st.text_input("Username")
+    pass_input = st.text_input("Password", type="password")
+    
+    if st.button("Login"):
+        if user_input in valid_users and valid_users[user_input] == pass_input:
+            st.session_state.logged_in = True
+            st.session_state.username = user_input
+            st.rerun() 
+        else:
+            st.error("❌ Invalid Username or Password")
 
-# --- 4. THE LIVE CHAT INTERFACE ---
-# Refresh logic (check every 1 second)
-st_autorefresh(interval=1000, key="chatupdate")
+# --- SCREEN B: THE CHAT ROOM ---
+else:
+    # AUTO-REFRESH MAGIC
+    # Set to 1000ms (1 second). Going faster than this will likely crash Streamlit.
+    st_autorefresh(interval=1000, limit=None, key="chat_autorefresh")
 
-# Header Section
-c1, c2 = st.columns([5, 1])
-with c1:
-    st.markdown(f"### 📟 Node: {st.session_state.username}")
-with c2:
-    if st.button("Log Out"):
-        st.session_state.logged_in = False
-        st.rerun()
-
-st.divider()
-
-# Message Display Area
-chat_placeholder = st.container()
-messages = load_messages()
-
-with chat_placeholder:
-    for msg in messages:
-        # Check if the current user is the one who sent the message
-        is_me = (msg["user"].lower().strip() == st.session_state.username.lower().strip())
-        
-        # Check if the current user is the Admin (God-Mode check)
-        is_admin = (st.session_state.username.lower().strip() == "admin")
-        
-        # Matrix Decryption
-        try:
-            decrypted_text = engine.decrypt(np.array(msg["matrix"]))
-        except:
-            decrypted_text = "[Decryption Error: Key mismatch]"
-        
-        bubble_type = "user-bubble" if is_me else "other-bubble"
-        display_name = "You" if is_me else msg["user"]
-        
-        # 👑 GOD-MODE VIEW: If admin, build a special raw data block
-        admin_data = ""
-        if is_admin:
-            # Convert the matrix list to a string for display
-            raw_matrix = str(msg["matrix"])
-            admin_data = f"""
-            <div style="background: rgba(0, 0, 0, 0.4); border: 1px dashed #ff0055; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: monospace; font-size: 0.75rem; color: #ff4b4b;">
-                <strong>👑 GOD-MODE | RAW ENCRYPTED MATRIX:</strong><br>
-                {raw_matrix}
-            </div>
-            """
-        
-        # Render the chat bubble (includes admin_data if applicable)
-        st.markdown(f"""
-            <div class="chat-bubble {bubble_type}">
-                <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 3px;">{display_name}</div>
-                {decrypted_text}
-                {admin_data}
-                <div class="metadata">{msg.get('time', 'Unknown')}</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-# Sticky Chat Input at the bottom
-st.write("") # Padding
-with st.container():
-    with st.form("chat_input", clear_on_submit=True):
-        cols = st.columns([4, 1])
-        with cols[0]:
-            user_msg = st.text_input("Enter secure message...", label_visibility="collapsed")
-        with cols[1]:
-            send_btn = st.form_submit_button("Send ➔", use_container_width=True)
-            
-        if send_btn and user_msg:
-            # Linear Algebra Encryption: C = A * P
-            encrypted_data = engine.encrypt(user_msg)
-            save_message(st.session_state.username, encrypted_data)
+    st.title("🕶️ Global Matrix Chat")
+    
+    # Header layout
+    col1, col2 = st.columns([0.8, 0.2])
+    with col1:
+        st.write(f"Welcome to the secure server, **{st.session_state.username}**.")
+    with col2:
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.username = ""
             st.rerun()
+
+    st.divider()
+
+    # 1. Display all past messages
+    st.subheader("Live Chat")
+    chat_history = load_messages()
+    
+    for msg in chat_history:
+        sender = msg["user"]
+        matrix_data = np.array(msg["matrix"])
+        
+        # Decrypt for the UI
+        decrypted_text = engine.decrypt(matrix_data)
+        
+        # --- ADMIN "HACKER" VIEW ---
+        if st.session_state.username == "admin":
+            with st.chat_message("assistant", avatar="🕵️"):
+                st.caption(f"Intercepted from: {sender}")
+                st.code(f"Raw Matrix Data:\n{matrix_data}", language="json")
+                st.write(f"**Decrypted:** {decrypted_text}")
+                
+        # --- REGULAR USER VIEW ---
+        else:
+            if sender == st.session_state.username:
+                st.chat_message("user").write(f"**You:** {decrypted_text}")
+            else:
+                st.chat_message("assistant").write(f"**{sender}:** {decrypted_text}")
+            
+    # 2. Input box for new messages
+    new_message = st.chat_input("Type your secret message here...")
+    if new_message:
+        encrypted_data = engine.encrypt(new_message)
+        save_message(st.session_state.username, encrypted_data)
+        st.rerun()
