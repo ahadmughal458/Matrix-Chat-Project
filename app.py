@@ -93,8 +93,6 @@ if "username" not in st.session_state:
 valid_users = {
     "ahad": "ahad123",
     "admin": "admin123",
-    "sehrish": "sehrish123",
-    "tatheer": "tatheer123",
     "essa": "essa123",
     "ahmed123": "ahmed123",
     "maheen": "maheen123"
@@ -107,7 +105,7 @@ st.set_page_config(page_title="Matrix Chat")
 
 # --- SCREEN A: LOGIN SYSTEM ---
 if not st.session_state.logged_in:
-    st.title("🔒 Login Page")
+    st.title("Login Page")
     st.write("Please log in to access.")
     
     user_input = st.text_input("Username")
@@ -127,7 +125,7 @@ else:
     # Set to 1000ms (1 second). Going faster than this will likely crash Streamlit.
     st_autorefresh(interval=1000, limit=None, key="chat_autorefresh")
 
-    st.title("🕶️ Global Matrix Chat")
+    st.title("Global Matrix Chat")
     
     # Header layout
     col1, col2 = st.columns([0.8, 0.2])
