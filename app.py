@@ -94,7 +94,8 @@ valid_users = {
     "ahad": "ahad123",
     "admin": "admin123",
     "essa": "essa123",
-    "ahmed123": "ahmed123",
+    "ahmed": "ahmed123",
+    "sehrish": "sehrish123",
     "maheen": "maheen123"
 }
 
