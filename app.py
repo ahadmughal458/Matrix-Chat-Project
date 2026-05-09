@@ -12,7 +12,7 @@ from datetime import datetime
 # Page config
 # ------------------------------
 st.set_page_config(
-    page_title="Matrix Chat",
+    page_title="CHAT APP BY CODECREATIFY",
     page_icon="💬",
     layout="wide",
     initial_sidebar_state="collapsed"
