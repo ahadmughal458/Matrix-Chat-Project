@@ -8,129 +8,166 @@ from github import Github
 from github.GithubException import GithubException
 from datetime import datetime
 
-# ==========================================
-# 1. CONFIGURATION
-# ==========================================
+# ------------------------------
+# Page config
+# ------------------------------
 st.set_page_config(
     page_title="Matrix Chat",
-    page_icon="🔒",
+    page_icon="💬",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Hide default Streamlit elements
-hide_st_style = """
-    <style>
+# ------------------------------
+# Custom CSS – clean, modern, light mode
+# ------------------------------
+light_css = """
+<style>
+    /* Remove default Streamlit padding and margins */
+    .main > div {
+        padding: 0rem 1rem;
+    }
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .stApp {margin-top: -50px;}
-    </style>
-"""
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
-# Custom CSS for chat bubbles, background, fonts
-custom_css = """
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
+    /* Global font */
     html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f5f7fb;
     }
     
-    .stApp {
-        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    /* Chat message container */
+    .chat-message {
+        display: flex;
+        margin-bottom: 1rem;
+        align-items: flex-start;
     }
-    
-    .chat-container {
-        background: rgba(20, 20, 40, 0.6);
-        border-radius: 20px;
-        padding: 20px;
-        backdrop-filter: blur(10px);
-        margin-bottom: 20px;
+    .chat-message.user {
+        justify-content: flex-end;
     }
-    
-    .user-bubble {
-        background: #00c6ff;
-        background: linear-gradient(135deg, #00c6ff, #0072ff);
+    .chat-message.other {
+        justify-content: flex-start;
+    }
+    /* Avatar */
+    .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: #e4e6eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 12px;
+        flex-shrink: 0;
+        color: #4a4a4a;
+    }
+    .user .avatar {
+        order: 2;
+        margin-left: 12px;
+        margin-right: 0;
+        background-color: #0084ff;
         color: white;
-        border-radius: 20px 20px 5px 20px;
-        padding: 10px 18px;
-        display: inline-block;
+    }
+    /* Bubble */
+    .bubble {
         max-width: 70%;
-        margin: 8px 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        padding: 10px 14px;
+        border-radius: 18px;
+        font-size: 14px;
+        line-height: 1.4;
+        word-wrap: break-word;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+    }
+    .user .bubble {
+        background-color: #0084ff;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+    .other .bubble {
+        background-color: #ffffff;
+        color: #1c1e21;
+        border: 1px solid #e4e6eb;
+        border-bottom-left-radius: 4px;
+    }
+    /* Timestamp */
+    .timestamp {
+        font-size: 11px;
+        color: #8a8d91;
+        margin: 4px 8px 0;
+    }
+    .user .timestamp {
+        text-align: right;
+    }
+    /* Header */
+    .chat-header {
+        background-color: white;
+        border-bottom: 1px solid #e4e6eb;
+        padding: 12px 20px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .chat-title {
+        font-weight: 600;
+        font-size: 18px;
+    }
+    .logout-btn {
+        background: none;
+        border: none;
+        color: #0084ff;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    /* Input area */
+    .stChatInput > div > div > textarea {
+        background-color: white;
+        border-radius: 24px;
+        border: 1px solid #e4e6eb;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    .stChatInput > div > div > textarea:focus {
+        border-color: #0084ff;
+        box-shadow: 0 0 0 2px rgba(0,132,255,0.2);
+    }
+    /* Button */
+    div.stButton > button {
+        background-color: #0084ff;
+        color: white;
+        border-radius: 24px;
+        border: none;
+        padding: 0.3rem 1rem;
         font-weight: 500;
     }
-    
-    .other-bubble {
-        background: #2c2c3e;
-        color: #f0f0f0;
-        border-radius: 20px 20px 20px 5px;
-        padding: 10px 18px;
-        display: inline-block;
-        max-width: 70%;
-        margin: 8px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .admin-bubble {
-        background: #ff416c;
-        background: linear-gradient(135deg, #ff4b2b, #ff416c);
-        color: white;
-        border-radius: 20px 5px 20px 20px;
-        padding: 10px 18px;
+    /* Admin panel (softer) */
+    .admin-badge {
+        background-color: #f0f2f5;
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-size: 12px;
         font-family: monospace;
-        font-size: 0.85rem;
-    }
-    
-    .stButton > button {
-        background: linear-gradient(90deg, #00c6ff, #0072ff);
-        color: white;
-        border: none;
-        border-radius: 30px;
-        padding: 0.5rem 1.5rem;
-        font-weight: 600;
-        transition: all 0.2s ease;
-    }
-    .stButton > button:hover {
-        transform: scale(1.02);
-        box-shadow: 0 5px 15px rgba(0,114,255,0.4);
-    }
-    
-    .stTextInput > div > div > input {
-        background: rgba(255,255,255,0.1);
-        border-radius: 30px;
-        color: white;
-        border: 1px solid rgba(255,255,255,0.2);
-    }
-    
-    .stChatInput > div > div > textarea {
-        background: rgba(30,30,50,0.9);
-        border-radius: 30px;
-        color: white;
-        border: 1px solid #00c6ff;
-    }
-    
-    .timestamp {
-        font-size: 0.7rem;
-        color: #aaa;
-        margin-left: 12px;
-    }
-    
-    .welcome-header {
-        background: rgba(0,198,255,0.15);
-        padding: 1rem;
-        border-radius: 30px;
-        text-align: center;
-        backdrop-filter: blur(5px);
-        margin-bottom: 20px;
+        margin: 8px 0;
+        color: #4b4f54;
     }
 </style>
 """
-st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown(light_css, unsafe_allow_html=True)
 
-# Key & GitHub (use environment variables if possible)
+# ------------------------------
+# Config
+# ------------------------------
 secret_key = [
     [1, 2, 3],
     [0, 1, 4],
@@ -139,13 +176,13 @@ secret_key = [
 engine = HillCipher(secret_key)
 DB_FILE = "chat_history.json"
 
-GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "YOUR_TOKEN")
-REPO_NAME = st.secrets.get("REPO_NAME", "user/repo")
+GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+REPO_NAME = st.secrets.get("REPO_NAME", "")
 GITHUB_FILE_PATH = "chat_history.json"
 
-# ==========================================
-# 2. DATABASE FUNCTIONS
-# ==========================================
+# ------------------------------
+# DB functions
+# ------------------------------
 def load_messages():
     if not os.path.exists(DB_FILE):
         return []
@@ -153,7 +190,7 @@ def load_messages():
         return json.load(f)
 
 def push_to_github():
-    if GITHUB_TOKEN == "YOUR_TOKEN":
+    if not GITHUB_TOKEN or not REPO_NAME:
         return
     try:
         g = Github(GITHUB_TOKEN)
@@ -165,29 +202,29 @@ def push_to_github():
             repo.update_file(contents.path, "Chat update", content, contents.sha)
         except GithubException:
             repo.create_file(GITHUB_FILE_PATH, "Initial chat", content)
-    except Exception as e:
-        st.toast(f"⚠️ GitHub sync failed: {e}", icon="⚠️")
+    except Exception:
+        pass
 
 def save_message(username, encrypted_matrix):
-    messages = load_messages()
-    messages.append({
+    msgs = load_messages()
+    msgs.append({
         "user": username,
         "matrix": encrypted_matrix.tolist(),
-        "timestamp": datetime.now().strftime("%H:%M:%S")
+        "ts": datetime.now().strftime("%I:%M %p")
     })
     with open(DB_FILE, "w") as f:
-        json.dump(messages, f, indent=2)
+        json.dump(msgs, f)
     push_to_github()
 
-# ==========================================
-# 3. AUTHENTICATION
-# ==========================================
+# ------------------------------
+# Auth
+# ------------------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "username" not in st.session_state:
     st.session_state.username = ""
 
-valid_users = {
+users = {
     "ahad": "ahad123",
     "admin": "admin123",
     "essa": "essa123",
@@ -196,76 +233,89 @@ valid_users = {
     "maheen": "maheen123"
 }
 
-# ==========================================
-# 4. UI: LOGIN SCREEN (custom style)
-# ==========================================
+# ------------------------------
+# Login screen (clean)
+# ------------------------------
 if not st.session_state.logged_in:
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        st.markdown("<div class='welcome-header'><h1 style='color:white;'>🔐 Matrix Chat</h1><p style='color:#ccc;'>Encrypted • Decentralized • Retro‑futuristic</p></div>", unsafe_allow_html=True)
-        with st.form("login_form"):
-            user_input = st.text_input("👤 Username", placeholder="Enter your username")
-            pass_input = st.text_input("🔑 Password", type="password", placeholder="••••••")
-            submitted = st.form_submit_button("🚀 Enter Chat Room")
-            if submitted:
-                if user_input in valid_users and valid_users[user_input] == pass_input:
+        st.image("https://cdn-icons-png.flaticon.com/512/906/906324.png", width=80)
+        st.markdown("<h2 style='text-align:center;'>Matrix Chat</h2>", unsafe_allow_html=True)
+        with st.form("login"):
+            username = st.text_input("Username", placeholder="e.g. ahad")
+            password = st.text_input("Password", type="password", placeholder="••••••")
+            if st.form_submit_button("Log in", use_container_width=True):
+                if username in users and users[username] == password:
                     st.session_state.logged_in = True
-                    st.session_state.username = user_input
+                    st.session_state.username = username
                     st.rerun()
                 else:
-                    st.error("❌ Access denied. Check your credentials.")
-        st.markdown("<p style='text-align:center;color:#aaa;margin-top:40px;'>⚡ Hill cipher | Real‑time refresh | GitHub backup</p>", unsafe_allow_html=True)
+                    st.error("Wrong username or password")
+        st.caption("🔐 End-to-end encrypted with Hill cipher")
 
-# ==========================================
-# 5. MAIN CHAT ROOM
-# ==========================================
+# ------------------------------
+# Main chat UI
+# ------------------------------
 else:
-    st_autorefresh(interval=2000, limit=None, key="chat_refresh")
+    st_autorefresh(interval=2000, limit=None, key="refresh")
     
-    # Sidebar with user info
-    with st.sidebar:
-        st.markdown(f"### 👋 {st.session_state.username}")
-        if st.button("🚪 Logout", use_container_width=True):
+    # Header
+    col1, col2 = st.columns([3,1])
+    with col1:
+        st.markdown("<div class='chat-title'>💬 Matrix Chat</div>", unsafe_allow_html=True)
+    with col2:
+        if st.button("Logout", key="logout_btn"):
             st.session_state.logged_in = False
             st.session_state.username = ""
             st.rerun()
-        st.divider()
-        st.caption("🔒 End‑to‑end encrypted with Hill cipher (3x3 matrix)")
-        st.caption("📁 History saved locally + GitHub")
-        if st.session_state.username == "admin":
-            st.warning("🕵️ Admin mode: raw matrix visible")
     
-    st.markdown("<div class='welcome-header'><h2>💬 Global CipherChat</h2><p>Messages are encrypted before storage — only the right key reveals them.</p></div>", unsafe_allow_html=True)
+    st.markdown("<hr style='margin:0 0 1rem 0;'>", unsafe_allow_html=True)
     
-    # Display chat messages
-    chat_history = load_messages()
+    # Chat history display
     chat_container = st.container()
     with chat_container:
-        for msg in chat_history:
-            sender = msg["user"]
-            matrix_data = np.array(msg["matrix"])
-            decrypted = engine.decrypt(matrix_data)
-            ts = msg.get("timestamp", "")
+        msgs = load_messages()
+        for m in msgs:
+            sender = m["user"]
+            matrix = np.array(m["matrix"])
+            decrypted = engine.decrypt(matrix)
+            ts = m.get("ts", "")
             
+            # Admin sees raw matrix in a subtle way
             if st.session_state.username == "admin":
-                # Admin: show both matrix and plaintext
-                with st.chat_message(name="assistant", avatar="🕵️"):
-                    st.markdown(f"**Intercepted from `{sender}`** <span class='timestamp'>{ts}</span>", unsafe_allow_html=True)
-                    st.code(f"Matrix:\n{matrix_data}", language="json")
-                    st.markdown(f"<div class='admin-bubble'>🔓 {decrypted}</div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class='admin-badge'>
+                    <strong>🕵️ Intercepted from {sender}</strong> · {ts}<br>
+                    <span style='font-size:11px;'>Matrix: {matrix.tolist()}</span><br>
+                    <strong>Decrypted:</strong> {decrypted}
+                </div>
+                """, unsafe_allow_html=True)
             else:
-                # Regular user
+                # Normal chat bubbles
                 if sender == st.session_state.username:
-                    with st.chat_message("user"):
-                        st.markdown(f"<div class='user-bubble'>{decrypted}</div><span class='timestamp'>{ts}</span>", unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class='chat-message user'>
+                        <div style='text-align:right;'>
+                            <div class='bubble'>{decrypted}</div>
+                            <div class='timestamp'>{ts}</div>
+                        </div>
+                        <div class='avatar'>{sender[0].upper()}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
                 else:
-                    with st.chat_message("assistant"):
-                        st.markdown(f"**{sender}** <span class='timestamp'>{ts}</span>", unsafe_allow_html=True)
-                        st.markdown(f"<div class='other-bubble'>{decrypted}</div>", unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class='chat-message other'>
+                        <div class='avatar'>{sender[0].upper()}</div>
+                        <div>
+                            <div class='bubble'>{decrypted}</div>
+                            <div class='timestamp'>{sender} · {ts}</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
     
-    # Input area
-    new_msg = st.chat_input("✏️ Type your secret message...")
+    # Input box
+    new_msg = st.chat_input("Type a message...")
     if new_msg and new_msg.strip():
-        encrypted = engine.encrypt(new_msg)
-        save_message(st.session_state.username, encrypted)
+        enc = engine.encrypt(new_msg.strip())
+        save_message(st.session_state.username, enc)
         st.rerun()
