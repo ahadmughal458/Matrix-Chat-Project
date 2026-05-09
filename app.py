@@ -268,7 +268,7 @@ else:
     # Header
     col1, col2 = st.columns([3,1])
     with col1:
-        st.markdown("<div class='chat-title'>💬 Matrix Chat</div>", unsafe_allow_html=True)
+        st.markdown("<div class='chat-title'>💬 CHAT APP</div>", unsafe_allow_html=True)
     with col2:
         if st.button("Logout", key="logout_btn"):
             st.session_state.logged_in = False
