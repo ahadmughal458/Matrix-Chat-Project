@@ -27,6 +27,9 @@ light_css = """
     .main > div {
         padding: 0rem 1rem;
     }
+    a._container_gzau3_1._viewerBadge_nim44_23 {
+    display: none;
+}
     .block-container {
         padding-top: 1rem;
         padding-bottom: 0rem;
