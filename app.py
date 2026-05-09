@@ -53,6 +53,9 @@ light_css = """
     .chat-message.user {
         justify-content: flex-end;
     }
+    a._container_gzau3_1._viewerBadge_nim44_23 {
+    display: none;
+    }
     .chat-message.other {
         justify-content: flex-start;
     }
